@@ -1,252 +1,121 @@
-"""
-String convert functions
-"""
+"""Public string case conversion helpers."""
+
+from __future__ import annotations
 
 import re
 
 
-def camelcase(string):
-    """ Convert string into camel case.
+# ---------------------------------------------------------------------------
+# Internal helper
+# ---------------------------------------------------------------------------
 
-    Args:
-        string: String to convert.
+def _tokenize(string: object) -> list[str]:
+    """Split an arbitrary string into lowercase word tokens.
 
-    Returns:
-        string: Camel case string.
-
+    Handles snake_case, kebab-case, space-separated, and PascalCase/camelCase
+    inputs uniformly.
     """
-    
-    if string == "":
-        return string
-
-    string = string.replace("_","-")
-    lst = string.split("-")
-    for i in range(len(lst)):
-        if i == 0:
-            continue
-        else:
-            lst[i] = lst[i].capitalize()
-    
-    return "".join(lst)
-
-def capitalcase(string):
-    """Convert string into capital case.
-    First letters will be uppercase.
-
-    Args:
-        string: String to convert.
-
-    Returns:
-        string: Capital case string.
-
-    """
-
-    string = str(string)
-    if not string:
-        return string
-    return uppercase(string[0]) + string[1:]
+    s: str = str(string)
+    # Insert a separator before each uppercase letter that follows a lowercase
+    # letter or digit (camelCase / PascalCase boundary).
+    s = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s)
+    # Replace any run of non-alphanumeric characters with a single separator.
+    s = re.sub(r"[^a-zA-Z0-9]+", "_", s)
+    # Strip leading/trailing separators and split.
+    tokens: list[str] = [t for t in s.strip("_").split("_") if t]
+    return [t.lower() for t in tokens]
 
 
-def constcase(string):
-    """Convert string into upper snake case.
-    Join punctuation with underscore and convert letters into uppercase.
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
 
-    Args:
-        string: String to convert.
-
-    Returns:
-        string: Const cased string.
-
-    """
-
-    return uppercase(snakecase(string))
+def camelcase(string: object) -> str:
+    """Convert *string* to camelCase."""
+    tokens: list[str] = _tokenize(string)
+    if not tokens:
+        return ""
+    return tokens[0] + "".join(t.capitalize() for t in tokens[1:])
 
 
-def lowercase(string):
-    """Convert string into lower case.
+def capitalcase(string: object) -> str:
+    """Capitalise the first character of *string*, leaving the rest as-is."""
+    s: str = str(string)
+    if not s:
+        return ""
+    return s[0].upper() + s[1:]
 
-    Args:
-        string: String to convert.
 
-    Returns:
-        string: Lowercase case string.
+def constcase(string: object) -> str:
+    """Convert *string* to CONST_CASE (SCREAMING_SNAKE_CASE)."""
+    return "_".join(t.upper() for t in _tokenize(string))
 
-    """
 
+def lowercase(string: object) -> str:
+    """Return *string* converted to all lower-case characters."""
     return str(string).lower()
 
 
-def pascalcase(string):
-    """Convert string into pascal case.
-
-    Args:
-        string: String to convert.
-
-    Returns:
-        string: Pascal case string.
-
-    """
-
-    return capitalcase(camelcase(string))
+def pascalcase(string: object) -> str:
+    """Convert *string* to PascalCase."""
+    return "".join(t.capitalize() for t in _tokenize(string))
 
 
-def pathcase(string):
-    """Convert string into path case.
-    Join punctuation with slash.
-
-    Args:
-        string: String to convert.
-
-    Returns:
-        string: Path cased string.
-
-    """
-    string = snakecase(string)
-    if not string:
-        return string
-    return re.sub(r"_", "/", string)
+def pathcase(string: object) -> str:
+    """Convert *string* to path/case (forward-slash separated, lower-case)."""
+    tokens: list[str] = _tokenize(string)
+    if not tokens:
+        return ""
+    return "/".join(tokens)
 
 
-def backslashcase(string):
-    """Convert string into spinal case.
-    Join punctuation with backslash.
-
-    Args:
-        string: String to convert.
-
-    Returns:
-        string: Spinal cased string.
-
-    """
-    str1 = re.sub(r"_", r"\\", snakecase(string))
-
-    return str1
-    # return re.sub(r"\\n", "", str1))  # TODO: make regex fot \t ...
+def backslashcase(string: object) -> str:
+    r"""Convert *string* to back\slash\case (backslash separated, lower-case)."""
+    tokens: list[str] = _tokenize(string)
+    if not tokens:
+        return ""
+    return "\\".join(tokens)
 
 
-def sentencecase(string):
-    """Convert string into sentence case.
-    First letter capped and each punctuations are joined with space.
-
-    Args:
-        string: String to convert.
-
-    Returns:
-        string: Sentence cased string.
-
-    """
-    joiner = ' '
-    string = re.sub(r"[\-_\.\s]", joiner, str(string))
-    if not string:
-        return string
-    return capitalcase(trimcase(
-        re.sub(r"[A-Z]", lambda matched: joiner +
-                                         lowercase(matched.group(0)), string)
-    ))
+def sentencecase(string: object) -> str:
+    """Convert *string* to Sentence case."""
+    tokens: list[str] = _tokenize(string)
+    if not tokens:
+        return ""
+    sentence: str = " ".join(tokens)
+    return sentence[0].upper() + sentence[1:]
 
 
-def snakecase(string):
-    """Convert string into snake case.
-    Join punctuation with underscore
-
-    Args:
-        string: String to convert.
-
-    Returns:
-        string: Snake cased string.
-
-    """
-
-    string = re.sub(r"[\-\.\s]", '_', str(string))
-    if not string:
-        return string
-    return lowercase(string[0]) + re.sub(r"[A-Z]", lambda matched: '_' + lowercase(matched.group(0)), string[1:])
+def snakecase(string: object) -> str:
+    """Convert *string* to snake_case."""
+    return "_".join(_tokenize(string))
 
 
-def spinalcase(string):
-    """Convert string into spinal case.
-    Join punctuation with hyphen.
-
-    Args:
-        string: String to convert.
-
-    Returns:
-        string: Spinal cased string.
-
-    """
-
-    return re.sub(r"_", "-", snakecase(string))
+def spinalcase(string: object) -> str:
+    """Convert *string* to spinal-case (kebab-case)."""
+    return "-".join(_tokenize(string))
 
 
-def dotcase(string):
-    """Convert string into dot case.
-    Join punctuation with dot.
-
-    Args:
-        string: String to convert.
-
-    Returns:
-        string: Dot cased string.
-
-    """
-
-    return re.sub(r"_", ".", snakecase(string))
+def dotcase(string: object) -> str:
+    """Convert *string* to dot.case."""
+    return ".".join(_tokenize(string))
 
 
-def titlecase(string):
-    """Convert string into sentence case.
-    First letter capped while each punctuations is capitalsed
-    and joined with space.
-
-    Args:
-        string: String to convert.
-
-    Returns:
-        string: Title cased string.
-
-    """
-
-    return ' '.join(
-        [capitalcase(word) for word in snakecase(string).split("_")]
-    )
+def titlecase(string: object) -> str:
+    """Convert *string* to Title Case."""
+    return " ".join(t.capitalize() for t in _tokenize(string))
 
 
-def trimcase(string):
-    """Convert string into trimmed string.
-
-    Args:
-        string: String to convert.
-
-    Returns:
-        string: Trimmed case string
-    """
-
+def trimcase(string: object) -> str:
+    """Strip leading and trailing whitespace from *string*."""
     return str(string).strip()
 
 
-def uppercase(string):
-    """Convert string into upper case.
-
-    Args:
-        string: String to convert.
-
-    Returns:
-        string: Uppercase case string.
-
-    """
-
+def uppercase(string: object) -> str:
+    """Return *string* converted to all upper-case characters."""
     return str(string).upper()
 
 
-def alphanumcase(string):
-    """Cuts all non-alphanumeric symbols,
-    i.e. cuts all expect except 0-9, a-z and A-Z.
-
-    Args:
-        string: String to convert.
-
-    Returns:
-        string: String with cutted non-alphanumeric symbols.
-
-    """
-    return ''.join(filter(str.isalnum, str(string)))
+def alphanumcase(string: object) -> str:
+    """Strip all non-alphanumeric characters from *string*."""
+    return re.sub(r"[^a-zA-Z0-9]", "", str(string))
